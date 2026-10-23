@@ -1,0 +1,29 @@
+info:
+  name: Update Product
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/products/{{productId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Chanel Coco Noir Eau De",
+        "price": 130.99
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
