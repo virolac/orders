@@ -1,5 +1,6 @@
 package io.github.virolac.orders.web;
 
+import io.github.virolac.orders.order.OrderNotFoundException;
 import io.github.virolac.orders.product.ProductInUseException;
 import io.github.virolac.orders.product.ProductNotFoundException;
 import org.jspecify.annotations.NonNull;
@@ -50,5 +51,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ProductInUseException.class)
     public ProblemDetail handleProductInUse(ProductInUseException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ProblemDetail handleOrderNotFound(OrderNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 }
