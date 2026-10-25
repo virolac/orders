@@ -17,10 +17,16 @@ import java.util.stream.Collectors;
 public class OrderService {
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final OrderEventPublisher orderEventPublisher;
 
-    public OrderService(ProductRepository productRepository, OrderRepository orderRepository) {
+    public OrderService(
+            ProductRepository productRepository,
+            OrderRepository orderRepository,
+            OrderEventPublisher orderEventPublisher
+    ) {
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
+        this.orderEventPublisher = orderEventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -47,6 +53,8 @@ public class OrderService {
         });
 
         Order placedOrder = orderRepository.saveAndFlush(order);
+        orderEventPublisher.publishOrderPlaced(
+                new OrderPlacedEvent(placedOrder.getId(), placedOrder.getTotal()));
 
         return OrderResponse.from(placedOrder);
     }

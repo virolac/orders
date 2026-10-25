@@ -13,12 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @DataJpaTest
 @Import({TestcontainersConfiguration.class, OrderService.class, ProductService.class})
@@ -37,6 +40,9 @@ class OrderServiceTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @MockitoBean
+    private OrderEventPublisher orderEventPublisher;
 
     private Product mascara;
     private Product powder;
@@ -65,6 +71,16 @@ class OrderServiceTest {
         assertThat(response.items().getFirst().unitPrice()).isEqualByComparingTo("9.99");
         assertThat(response.items().getFirst().lineTotal()).isEqualByComparingTo("19.98");
         assertThat(response.total()).isEqualByComparingTo("34.97");
+    }
+
+    @Test
+    void placeOrderPublishesOrderPlacedEvent() {
+        OrderResponse response = orderService.placeOrder(new PlaceOrderRequest(List.of(
+                new OrderItemRequest(mascara.getId(), 2),
+                new OrderItemRequest(powder.getId(), 1)
+        )));
+
+        verify(orderEventPublisher).publishOrderPlaced(new OrderPlacedEvent(response.id(), response.total()));
     }
 
     @Test
@@ -98,7 +114,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void placeOrderWithMissingProductThrowsAndSavesNothing() {
+    void placeOrderWithMissingProductThrowsSavesNothingAndPublishesNothing() {
         long ordersBefore = orderRepository.count();
 
         assertThatThrownBy(() -> orderService.placeOrder(new PlaceOrderRequest(List.of(
@@ -107,6 +123,7 @@ class OrderServiceTest {
         )))).isInstanceOf(ProductNotFoundException.class);
 
         assertThat(orderRepository.count()).isEqualTo(ordersBefore);
+        verifyNoInteractions(orderEventPublisher);
     }
 
     @Test
