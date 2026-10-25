@@ -100,9 +100,7 @@ class OrderServiceTest {
 
     @Test
     void placeOrderKeepsUnitPriceWhenProductPriceChangesLater() {
-        OrderResponse placed = orderService.placeOrder(new PlaceOrderRequest(List.of(
-                new OrderItemRequest(lipstick.getId(), 1)
-        )));
+        OrderResponse placed = placeOrderFor(lipstick);
 
         lipstick.setPrice(new BigDecimal("99.99"));
         entityManager.flush();
@@ -151,9 +149,7 @@ class OrderServiceTest {
 
     @Test
     void getAllOrdersIncludesPlacedOrderWithItems() {
-        OrderResponse placed = orderService.placeOrder(new PlaceOrderRequest(List.of(
-                new OrderItemRequest(mascara.getId(), 1)
-        )));
+        OrderResponse placed = placeOrderFor(mascara);
         entityManager.flush();
         entityManager.clear();
 
@@ -168,6 +164,40 @@ class OrderServiceTest {
     }
 
     @Test
+    void markOrderPaidSetsStatusToPaid() {
+        OrderResponse placed = placeOrderFor(lipstick);
+
+        orderService.markOrderPaid(placed.id());
+
+        assertThat(reloadStatus(placed.id())).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void markOrderFailedSetsStatusToFailed() {
+        OrderResponse placed = placeOrderFor(lipstick);
+
+        orderService.markOrderFailed(placed.id());
+
+        assertThat(reloadStatus(placed.id())).isEqualTo(OrderStatus.FAILED);
+    }
+
+    @Test
+    void secondPaymentResultForSameOrderIsIgnored() {
+        OrderResponse placed = placeOrderFor(lipstick);
+        orderService.markOrderPaid(placed.id());
+
+        orderService.markOrderFailed(placed.id());
+
+        assertThat(reloadStatus(placed.id())).isEqualTo(OrderStatus.PAID);
+    }
+
+    @Test
+    void markOrderPaidThrowsForMissingOrder() {
+        assertThatThrownBy(() -> orderService.markOrderPaid(999_999L))
+                .isInstanceOf(OrderNotFoundException.class);
+    }
+
+    @Test
     void databaseRejectsSameProductTwiceInOneOrder() {
         Order order = new Order();
         order.addItem(new OrderItem(lipstick, 1));
@@ -179,13 +209,24 @@ class OrderServiceTest {
 
     @Test
     void deletingProductInAnOrderThrowsProductInUse() {
-        orderService.placeOrder(new PlaceOrderRequest(List.of(
-                new OrderItemRequest(lipstick.getId(), 1)
-        )));
+        placeOrderFor(lipstick);
         entityManager.flush();
         entityManager.clear();
 
         assertThatThrownBy(() -> productService.deleteProduct(lipstick.getId()))
                 .isInstanceOf(ProductInUseException.class);
+    }
+
+    private OrderResponse placeOrderFor(Product product) {
+        return orderService.placeOrder(new PlaceOrderRequest(List.of(
+                new OrderItemRequest(product.getId(), 1)
+        )));
+    }
+
+    private OrderStatus reloadStatus(Long orderId) {
+        entityManager.flush();
+        entityManager.clear();
+
+        return orderService.getOrderById(orderId).status();
     }
 }

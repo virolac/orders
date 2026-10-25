@@ -3,6 +3,8 @@ package io.github.virolac.orders.order;
 import io.github.virolac.orders.product.Product;
 import io.github.virolac.orders.product.ProductNotFoundException;
 import io.github.virolac.orders.product.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
+
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
     private final OrderEventPublisher orderEventPublisher;
@@ -59,6 +63,16 @@ public class OrderService {
         return OrderResponse.from(placedOrder);
     }
 
+    @Transactional
+    public void markOrderPaid(Long id) {
+        findPendingOrder(id).ifPresent(Order::markPaid);
+    }
+
+    @Transactional
+    public void markOrderFailed(Long id) {
+        findPendingOrder(id).ifPresent(Order::markFailed);
+    }
+
     private Map<Long, Integer> mergeQuantities(PlaceOrderRequest placeOrderRequest) {
         return placeOrderRequest
                 .items()
@@ -89,5 +103,18 @@ public class OrderService {
         }
 
         return productsById;
+    }
+
+    private Optional<Order> findPendingOrder(Long id) {
+        Order order = orderRepository
+                .findById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            LOGGER.info("Order {} is already {}; ignoring payment result", id, order.getStatus());
+            return Optional.empty();
+        }
+
+        return Optional.of(order);
     }
 }

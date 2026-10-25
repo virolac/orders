@@ -50,8 +50,22 @@ public class Order {
         return status;
     }
 
-    public void setStatus(OrderStatus status) {
-        this.status = status;
+    public void markPaid() {
+        if (status != OrderStatus.PENDING) {
+            throw new IllegalStateException(
+                    String.format("Cannot mark order %d as paid: status is %s", id, status));
+        }
+
+        this.status = OrderStatus.PAID;
+    }
+
+    public void markFailed() {
+        if (status != OrderStatus.PENDING) {
+            throw new IllegalStateException(
+                    String.format("Cannot mark order %d as failed: status is %s", id, status));
+        }
+
+        this.status = OrderStatus.FAILED;
     }
 
     public List<OrderItem> getItems() {
