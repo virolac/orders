@@ -63,4 +63,8 @@ public class OrderItem {
     public BigDecimal getUnitPrice() {
         return unitPrice;
     }
+
+    public BigDecimal getLineTotal() {
+        return BigDecimal.valueOf(quantity).multiply(unitPrice);
+    }
 }

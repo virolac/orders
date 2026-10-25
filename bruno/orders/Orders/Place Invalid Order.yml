@@ -1,0 +1,36 @@
+info:
+  name: Place Invalid Order
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/orders"
+  body:
+    type: json
+    data: |-
+      {
+        "items": [
+          {
+            "productId": 1,
+            "quantity": 0
+          },
+          {
+            "productId": 51
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "400"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

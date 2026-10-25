@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,5 +63,15 @@ public class Order {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public BigDecimal getTotal() {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (OrderItem item : items) {
+            total = total.add(item.getLineTotal());
+        }
+
+        return total;
     }
 }

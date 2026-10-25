@@ -1,0 +1,43 @@
+info:
+  name: Place Order
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/orders"
+  body:
+    type: json
+    data: |-
+      {
+        "items": [
+          {
+            "productId": 1,
+            "quantity": 2
+          },
+          {
+            "productId": 51,
+            "quantity": 1
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const order = res.getBody();
+        bru.setVar("orderId", order.id);
+        bru.setVar("orderedProductId", order.items[0].productId);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
