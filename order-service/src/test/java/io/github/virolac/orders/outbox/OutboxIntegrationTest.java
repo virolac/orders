@@ -1,6 +1,7 @@
 package io.github.virolac.orders.outbox;
 
 import io.github.virolac.orders.RabbitMQTestcontainersConfiguration;
+import io.github.virolac.orders.RedisTestcontainersConfiguration;
 import io.github.virolac.orders.TestcontainersConfiguration;
 import io.github.virolac.orders.messaging.RabbitConfig;
 import io.github.virolac.orders.order.OrderItemRequest;
@@ -22,7 +23,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@Import({TestcontainersConfiguration.class, RabbitMQTestcontainersConfiguration.class})
+@Import({
+        TestcontainersConfiguration.class,
+        RabbitMQTestcontainersConfiguration.class,
+        RedisTestcontainersConfiguration.class
+})
 class OutboxIntegrationTest {
     private static final long TIMEOUT_MILLIS = 10_000;
     private static final long POLL_INTERVAL_MILLIS = 100;

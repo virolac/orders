@@ -1,6 +1,7 @@
 package io.github.virolac.orders.order;
 
 import io.github.virolac.orders.RabbitMQTestcontainersConfiguration;
+import io.github.virolac.orders.RedisTestcontainersConfiguration;
 import io.github.virolac.orders.TestcontainersConfiguration;
 import io.github.virolac.orders.messaging.RabbitConfig;
 import io.github.virolac.orders.product.ProductRepository;
@@ -17,7 +18,11 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@Import({TestcontainersConfiguration.class, RabbitMQTestcontainersConfiguration.class})
+@Import({
+        TestcontainersConfiguration.class,
+        RabbitMQTestcontainersConfiguration.class,
+        RedisTestcontainersConfiguration.class
+})
 class PaymentResultIntegrationTest {
     private static final long TIMEOUT_MILLIS = 10_000;
     private static final long POLL_INTERVAL_MILLIS = 100;
