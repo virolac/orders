@@ -1,5 +1,6 @@
 package io.github.virolac.orders.product;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(ProductCacheConfig.PRODUCTS_CACHE)
     public ProductResponse getProductById(Long id) {
         return productRepository
                 .findById(id)

@@ -25,4 +25,11 @@ spring:
           multiplier: 2
           max-retries: 2
         default-requeue-rejected: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
+  cache:
+    type: redis
 
