@@ -1,19 +1,29 @@
 package io.github.virolac.orders.order;
 
 import io.github.virolac.orders.messaging.RabbitConfig;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import io.github.virolac.orders.outbox.OutboxEvent;
+import io.github.virolac.orders.outbox.OutboxEventRepository;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 public class OrderEventPublisher {
-    private final RabbitTemplate rabbitTemplate;
+    private final OutboxEventRepository outboxEventRepository;
+    private final JsonMapper jsonMapper;
 
-    public OrderEventPublisher(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
+    public OrderEventPublisher(OutboxEventRepository outboxEventRepository, JsonMapper jsonMapper) {
+        this.outboxEventRepository = outboxEventRepository;
+        this.jsonMapper = jsonMapper;
     }
 
     public void publishOrderPlaced(OrderPlacedEvent orderPlacedEvent) {
-        rabbitTemplate.convertAndSend(
-                RabbitConfig.ORDERS_EXCHANGE, RabbitConfig.ORDER_PLACED_ROUTING_KEY, orderPlacedEvent);
+        OutboxEvent outboxEvent = new OutboxEvent(
+                RabbitConfig.ORDERS_EXCHANGE,
+                RabbitConfig.ORDER_PLACED_ROUTING_KEY,
+                orderPlacedEvent.getClass().getName(),
+                jsonMapper.writeValueAsString(orderPlacedEvent)
+        );
+
+        outboxEventRepository.save(outboxEvent);
     }
 }
