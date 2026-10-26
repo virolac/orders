@@ -1,5 +1,7 @@
 package io.github.virolac.orders.product;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CachePut(cacheNames = ProductCacheConfig.PRODUCTS_CACHE, key = "#id")
     public ProductResponse updateProduct(Long id, ProductRequest productRequest) {
         Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
         product.setName(productRequest.name());
@@ -46,6 +49,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = ProductCacheConfig.PRODUCTS_CACHE, key = "#id")
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
 
