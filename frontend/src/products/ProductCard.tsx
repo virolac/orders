@@ -1,18 +1,15 @@
+import { formatPrice } from "../format";
 import { type Product } from "./api";
-
-const priceFormatter = new Intl.NumberFormat(undefined, {
-  style: "currency",
-  currency: "EUR",
-});
 
 export type ProductCardProps = {
   product: Product;
+  onAddToCart: (product: Product) => void;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   return (
     <article>
-      <h2>{product.name}</h2>
+      <h3>{product.name}</h3>
       {product.imageUrl !== null ? (
         <img
           src={product.imageUrl}
@@ -25,7 +22,10 @@ export function ProductCard({ product }: ProductCardProps) {
         <div>No image</div>
       )}
       {product.description && <p>{product.description}</p>}
-      <span>{priceFormatter.format(product.price)}</span>
+      <span>{formatPrice(product.price)}</span>
+      <button type="button" onClick={() => onAddToCart(product)}>
+        Add to cart
+      </button>
     </article>
   );
 }

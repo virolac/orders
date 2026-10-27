@@ -18,7 +18,11 @@ type ProductListSuccessState = {
 type ProductListState =
   ProductListLoadingState | ProductListFailedState | ProductListSuccessState;
 
-export function ProductList() {
+export type ProductListProps = {
+  onAddToCart: (product: Product) => void;
+};
+
+export function ProductList({ onAddToCart }: ProductListProps) {
   const [listState, setListState] = useState<ProductListState>({
     status: "loading",
   });
@@ -60,7 +64,7 @@ export function ProductList() {
     <ul>
       {listState.products.map((product) => (
         <li key={product.id}>
-          <ProductCard product={product} />
+          <ProductCard product={product} onAddToCart={onAddToCart} />
         </li>
       ))}
     </ul>
