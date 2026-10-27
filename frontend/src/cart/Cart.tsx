@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatPrice } from "../format";
 import { placeOrder, type OrderResponse } from "../orders/api";
 import type { CartItem } from "./types";
+import { OrderConfirmation } from "../orders/OrderConfirmation";
 
 function calculateEstimatedTotal(items: CartItem[]): number {
   return items.reduce((sum, { product, quantity }) => {
@@ -89,11 +90,7 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
   return (
     <>
       {orderState.status === "placed" && (
-        <div role="status">
-          <p>Order #{orderState.order.id} placed.</p>
-          <p>Status: {orderState.order.status}</p>
-          <p>Total: {formatPrice(orderState.order.total)}</p>
-        </div>
+        <OrderConfirmation order={orderState.order} key={orderState.order.id} />
       )}
       {cartContents}
       {orderState.status === "failed" && (
