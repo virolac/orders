@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
@@ -27,11 +28,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ProductController.class)
 class ProductControllerTest {
+    private static final String DESCRIPTION = "A soft blue eyeliner.";
+    private static final String IMAGE_URL = "https://cdn.example.com/blue-eyeliner.webp";
 
     private static final String VALID_BODY = """
             {
               "name": "Blue Eyeliner",
-              "price": 7.49
+              "price": 7.49,
+              "description": "A soft blue eyeliner.",
+              "imageUrl": "https://cdn.example.com/blue-eyeliner.webp"
             }
             """;
 
@@ -42,7 +47,7 @@ class ProductControllerTest {
             """;
 
     private static final ProductRequest VALID_REQUEST =
-            new ProductRequest("Blue Eyeliner", new BigDecimal("7.49"));
+            new ProductRequest("Blue Eyeliner", new BigDecimal("7.49"), DESCRIPTION, IMAGE_URL);
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,8 +58,8 @@ class ProductControllerTest {
     @Test
     void getProductsReturnsAllProducts() throws Exception {
         given(productService.getAllProducts()).willReturn(List.of(
-                new ProductResponse(1L, "Red Lipstick", new BigDecimal("12.99")),
-                new ProductResponse(51L, "Powder Canister", new BigDecimal("14.99"))
+                new ProductResponse(1L, "Red Lipstick", new BigDecimal("12.99"), DESCRIPTION, IMAGE_URL),
+                new ProductResponse(51L, "Powder Canister", new BigDecimal("14.99"), null, null)
         ));
 
         mockMvc.perform(get("/api/products"))
@@ -63,19 +68,25 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].name").value("Red Lipstick"))
                 .andExpect(jsonPath("$[0].price").value(12.99))
-                .andExpect(jsonPath("$[1].id").value(51));
+                .andExpect(jsonPath("$[0].description").value(DESCRIPTION))
+                .andExpect(jsonPath("$[0].imageUrl").value(IMAGE_URL))
+                .andExpect(jsonPath("$[1].id").value(51))
+                .andExpect(jsonPath("$[1].description").value(nullValue()))
+                .andExpect(jsonPath("$[1].imageUrl").value(nullValue()));
     }
 
     @Test
     void getProductReturnsProduct() throws Exception {
         given(productService.getProductById(1L))
-                .willReturn(new ProductResponse(1L, "Red Lipstick", new BigDecimal("12.99")));
+                .willReturn(new ProductResponse(1L, "Red Lipstick", new BigDecimal("12.99"), DESCRIPTION, IMAGE_URL));
 
         mockMvc.perform(get("/api/products/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Red Lipstick"))
-                .andExpect(jsonPath("$.price").value(12.99));
+                .andExpect(jsonPath("$.price").value(12.99))
+                .andExpect(jsonPath("$.description").value(DESCRIPTION))
+                .andExpect(jsonPath("$.imageUrl").value(IMAGE_URL));
     }
 
     @Test
@@ -92,7 +103,7 @@ class ProductControllerTest {
     @Test
     void createProductReturnsCreatedWithLocation() throws Exception {
         given(productService.createProduct(VALID_REQUEST))
-                .willReturn(new ProductResponse(102L, "Blue Eyeliner", new BigDecimal("7.49")));
+                .willReturn(new ProductResponse(102L, "Blue Eyeliner", new BigDecimal("7.49"), DESCRIPTION, IMAGE_URL));
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -101,7 +112,28 @@ class ProductControllerTest {
                 .andExpect(header().string("Location", endsWith("/api/products/102")))
                 .andExpect(jsonPath("$.id").value(102))
                 .andExpect(jsonPath("$.name").value("Blue Eyeliner"))
-                .andExpect(jsonPath("$.price").value(7.49));
+                .andExpect(jsonPath("$.price").value(7.49))
+                .andExpect(jsonPath("$.description").value(DESCRIPTION))
+                .andExpect(jsonPath("$.imageUrl").value(IMAGE_URL));
+    }
+
+    @Test
+    void createProductWithoutDescriptionAndImageIsAccepted() throws Exception {
+        ProductRequest request = new ProductRequest("Blue Eyeliner", new BigDecimal("7.49"), null, null);
+        given(productService.createProduct(request))
+                .willReturn(new ProductResponse(102L, "Blue Eyeliner", new BigDecimal("7.49"), null, null));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Blue Eyeliner",
+                                  "price": 7.49
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").value(nullValue()))
+                .andExpect(jsonPath("$.imageUrl").value(nullValue()));
     }
 
     @Test
@@ -114,6 +146,47 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errors.name").isArray())
                 .andExpect(jsonPath("$.errors.price").isArray());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void createProductWithJavascriptImageUrlReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithImageUrl("javascript:alert(1)")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.imageUrl").isArray());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void createProductWithHttpImageUrlReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithImageUrl("http://cdn.example.com/blue-eyeliner.webp")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.imageUrl").isArray());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void createProductWithTooLongDescriptionReturnsBadRequest() throws Exception {
+        String body = """
+                {
+                  "name": "Blue Eyeliner",
+                  "price": 7.49,
+                  "description": "%s"
+                }
+                """.formatted("a".repeat(1001));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.description").isArray());
 
         verifyNoInteractions(productService);
     }
@@ -133,7 +206,7 @@ class ProductControllerTest {
     @Test
     void updateProductReturnsUpdatedProduct() throws Exception {
         given(productService.updateProduct(1L, VALID_REQUEST))
-                .willReturn(new ProductResponse(1L, "Blue Eyeliner", new BigDecimal("7.49")));
+                .willReturn(new ProductResponse(1L, "Blue Eyeliner", new BigDecimal("7.49"), DESCRIPTION, IMAGE_URL));
 
         mockMvc.perform(put("/api/products/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -141,7 +214,9 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Blue Eyeliner"))
-                .andExpect(jsonPath("$.price").value(7.49));
+                .andExpect(jsonPath("$.price").value(7.49))
+                .andExpect(jsonPath("$.description").value(DESCRIPTION))
+                .andExpect(jsonPath("$.imageUrl").value(IMAGE_URL));
     }
 
     @Test
@@ -182,5 +257,25 @@ class ProductControllerTest {
         mockMvc.perform(delete("/api/products/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void deleteProductInUseReturnsConflict() throws Exception {
+        willThrow(new ProductInUseException(1L)).given(productService).deleteProduct(1L);
+
+        mockMvc.perform(delete("/api/products/1"))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Product with id 1 is in use"));
+    }
+
+    private static String bodyWithImageUrl(String imageUrl) {
+        return """
+                {
+                  "name": "Blue Eyeliner",
+                  "price": 7.49,
+                  "imageUrl": "%s"
+                }
+                """.formatted(imageUrl);
     }
 }

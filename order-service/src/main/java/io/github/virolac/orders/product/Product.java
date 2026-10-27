@@ -20,12 +20,20 @@ public class Product {
     @Column(nullable = false, precision = 7, scale = 2)
     private BigDecimal price;
 
+    @Column(length = 1000)
+    private String description;
+
+    @Column(length = 2048)
+    private String imageUrl;
+
     protected Product() {
     }
 
-    public Product(String name, BigDecimal price) {
+    public Product(String name, BigDecimal price, String description, String imageUrl) {
         this.name = name;
         this.price = price;
+        this.description = description;
+        this.imageUrl = imageUrl;
     }
 
     public Long getId() {
@@ -48,12 +56,30 @@ public class Product {
         this.price = price;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     @Override
     public String toString() {
         return "Product{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", price=" + price +
+                ", description='" + description + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
                 '}';
     }
 }

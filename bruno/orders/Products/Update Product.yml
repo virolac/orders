@@ -10,8 +10,8 @@ http:
     type: json
     data: |-
       {
-        "name": "Chanel Coco Noir Eau De",
-        "price": 130.99
+        "name": "Test Fragrance",
+        "price": 30.99
       }
   auth: inherit
 

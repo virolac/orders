@@ -10,7 +10,8 @@ http:
     type: json
     data: |-
       {
-        "price": -10.999
+        "price": -10.999,
+        "imageUrl": "javascript:void(0)"
       }
   auth: inherit
 

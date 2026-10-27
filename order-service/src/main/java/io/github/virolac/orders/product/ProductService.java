@@ -33,7 +33,12 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(ProductRequest productRequest) {
-        Product product = new Product(productRequest.name(), productRequest.price());
+        Product product = new Product(
+                productRequest.name(),
+                productRequest.price(),
+                productRequest.description(),
+                productRequest.imageUrl()
+        );
 
         return ProductResponse.from(productRepository.save(product));
     }
@@ -44,6 +49,8 @@ public class ProductService {
         Product product = productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
         product.setName(productRequest.name());
         product.setPrice(productRequest.price());
+        product.setDescription(productRequest.description());
+        product.setImageUrl(productRequest.imageUrl());
 
         return ProductResponse.from(product);
     }
