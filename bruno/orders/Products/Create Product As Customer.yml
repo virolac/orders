@@ -1,0 +1,46 @@
+info:
+  name: Create Product As Customer
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/products"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Test Fragrance",
+        "price": 29.99
+      }
+  auth:
+    type: oauth2
+    flow: resource_owner_password_credentials
+    accessTokenUrl: http://localhost:8180/realms/orders/protocol/openid-connect/token
+    credentials:
+      clientId: orders-bruno
+      placement: body
+    resourceOwner:
+      username: "{{customerUsername}}"
+      password: "{{customerPassword}}"
+    tokenConfig:
+      id: customer
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: false
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "403"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

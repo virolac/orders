@@ -1,21 +1,28 @@
 package io.github.virolac.orders.order;
 
 import io.github.virolac.orders.product.ProductNotFoundException;
+import io.github.virolac.orders.security.KeycloakRealmRoleConverter;
+import io.github.virolac.orders.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -24,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OrderController.class)
+@Import(SecurityConfig.class)
 class OrderControllerTest {
     private static final String VALID_BODY = """
             {
@@ -58,11 +66,15 @@ class OrderControllerTest {
     @MockitoBean
     private OrderService orderService;
 
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
     @Test
     void placeOrderReturnsCreatedWithLocationAndOrder() throws Exception {
         given(orderService.placeOrder(VALID_REQUEST)).willReturn(PLACED_ORDER);
 
         mockMvc.perform(post("/api/orders")
+                        .with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isCreated())
@@ -80,8 +92,30 @@ class OrderControllerTest {
     }
 
     @Test
+    void placeOrderWithoutTokenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(orderService);
+    }
+
+    @Test
+    void placeOrderWithoutCustomerRoleReturnsForbidden() throws Exception {
+        mockMvc.perform(post("/api/orders")
+                        .with(withRealmRoles("admin"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(orderService);
+    }
+
+    @Test
     void placeOrderWithNoItemsReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/orders")
+                        .with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ \"items\": [] }"))
                 .andExpect(status().isBadRequest())
@@ -105,6 +139,7 @@ class OrderControllerTest {
                 """;
 
         mockMvc.perform(post("/api/orders")
+                        .with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
@@ -120,6 +155,7 @@ class OrderControllerTest {
     @Test
     void placeOrderWithBareArrayBodyReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/orders")
+                        .with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[ { \"productId\": 1, \"quantity\": 2 } ]"))
                 .andExpect(status().isBadRequest())
@@ -133,6 +169,7 @@ class OrderControllerTest {
         given(orderService.placeOrder(VALID_REQUEST)).willThrow(new ProductNotFoundException(51L));
 
         mockMvc.perform(post("/api/orders")
+                        .with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isNotFound())
@@ -144,7 +181,7 @@ class OrderControllerTest {
     void getOrderReturnsOrder() throws Exception {
         given(orderService.getOrderById(7L)).willReturn(PLACED_ORDER);
 
-        mockMvc.perform(get("/api/orders/7"))
+        mockMvc.perform(get("/api/orders/7").with(customer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.items", hasSize(2)))
@@ -155,7 +192,7 @@ class OrderControllerTest {
     void getMissingOrderReturnsNotFound() throws Exception {
         given(orderService.getOrderById(99L)).willThrow(new OrderNotFoundException(99L));
 
-        mockMvc.perform(get("/api/orders/99"))
+        mockMvc.perform(get("/api/orders/99").with(customer()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.detail").value("Order with id 99 not found"));
@@ -165,9 +202,27 @@ class OrderControllerTest {
     void getOrdersReturnsAllOrders() throws Exception {
         given(orderService.getAllOrders()).willReturn(List.of(PLACED_ORDER));
 
-        mockMvc.perform(get("/api/orders"))
+        mockMvc.perform(get("/api/orders").with(customer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(7));
+    }
+
+    @Test
+    void getOrdersWithoutTokenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/orders"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(orderService);
+    }
+
+    private static RequestPostProcessor customer() {
+        return withRealmRoles("customer");
+    }
+
+    private static RequestPostProcessor withRealmRoles(String... roles) {
+        return jwt()
+                .jwt(token -> token.claim("realm_access", Map.of("roles", List.of(roles))))
+                .authorities(new KeycloakRealmRoleConverter());
     }
 }

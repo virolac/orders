@@ -13,6 +13,26 @@ config:
         username: ""
         password: ""
       bypassProxy: ""
+
+request:
+  auth:
+    type: oauth2
+    flow: resource_owner_password_credentials
+    accessTokenUrl: http://localhost:8180/realms/orders/protocol/openid-connect/token
+    credentials:
+      clientId: orders-bruno
+      placement: body
+    resourceOwner:
+      username: "{{username}}"
+      password: "{{password}}"
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: false
 bundled: false
 extensions:
   bruno:

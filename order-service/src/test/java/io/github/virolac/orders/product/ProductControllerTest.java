@@ -1,14 +1,20 @@
 package io.github.virolac.orders.product;
 
+import io.github.virolac.orders.security.KeycloakRealmRoleConverter;
+import io.github.virolac.orders.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
@@ -17,6 +23,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ProductController.class)
+@Import(SecurityConfig.class)
 class ProductControllerTest {
     private static final String DESCRIPTION = "A soft blue eyeliner.";
     private static final String IMAGE_URL = "https://cdn.example.com/blue-eyeliner.webp";
@@ -55,8 +63,11 @@ class ProductControllerTest {
     @MockitoBean
     private ProductService productService;
 
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
     @Test
-    void getProductsReturnsAllProducts() throws Exception {
+    void getProductsReturnsAllProductsWithoutToken() throws Exception {
         given(productService.getAllProducts()).willReturn(List.of(
                 new ProductResponse(1L, "Red Lipstick", new BigDecimal("12.99"), DESCRIPTION, IMAGE_URL),
                 new ProductResponse(51L, "Powder Canister", new BigDecimal("14.99"), null, null)
@@ -76,7 +87,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void getProductReturnsProduct() throws Exception {
+    void getProductReturnsProductWithoutToken() throws Exception {
         given(productService.getProductById(1L))
                 .willReturn(new ProductResponse(1L, "Red Lipstick", new BigDecimal("12.99"), DESCRIPTION, IMAGE_URL));
 
@@ -106,6 +117,7 @@ class ProductControllerTest {
                 .willReturn(new ProductResponse(102L, "Blue Eyeliner", new BigDecimal("7.49"), DESCRIPTION, IMAGE_URL));
 
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isCreated())
@@ -124,6 +136,7 @@ class ProductControllerTest {
                 .willReturn(new ProductResponse(102L, "Blue Eyeliner", new BigDecimal("7.49"), null, null));
 
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -137,8 +150,30 @@ class ProductControllerTest {
     }
 
     @Test
+    void createProductWithoutTokenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void createProductAsCustomerReturnsForbidden() throws Exception {
+        mockMvc.perform(post("/api/products")
+                        .with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
     void createInvalidProductReturnsBadRequestWithFieldErrors() throws Exception {
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(INVALID_BODY))
                 .andExpect(status().isBadRequest())
@@ -153,6 +188,7 @@ class ProductControllerTest {
     @Test
     void createProductWithJavascriptImageUrlReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyWithImageUrl("javascript:alert(1)")))
                 .andExpect(status().isBadRequest())
@@ -164,6 +200,7 @@ class ProductControllerTest {
     @Test
     void createProductWithHttpImageUrlReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyWithImageUrl("http://cdn.example.com/blue-eyeliner.webp")))
                 .andExpect(status().isBadRequest())
@@ -183,6 +220,7 @@ class ProductControllerTest {
                 """.formatted("a".repeat(1001));
 
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
@@ -194,6 +232,7 @@ class ProductControllerTest {
     @Test
     void createWithMalformedJsonReturnsBadRequestProblemDetail() throws Exception {
         mockMvc.perform(post("/api/products")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": "))
                 .andExpect(status().isBadRequest())
@@ -209,6 +248,7 @@ class ProductControllerTest {
                 .willReturn(new ProductResponse(1L, "Blue Eyeliner", new BigDecimal("7.49"), DESCRIPTION, IMAGE_URL));
 
         mockMvc.perform(put("/api/products/1")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isOk())
@@ -220,10 +260,22 @@ class ProductControllerTest {
     }
 
     @Test
+    void updateProductAsCustomerReturnsForbidden() throws Exception {
+        mockMvc.perform(put("/api/products/1")
+                        .with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_BODY))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
     void updateMissingProductReturnsNotFound() throws Exception {
         given(productService.updateProduct(99L, VALID_REQUEST)).willThrow(new ProductNotFoundException(99L));
 
         mockMvc.perform(put("/api/products/99")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isNotFound())
@@ -233,6 +285,7 @@ class ProductControllerTest {
     @Test
     void updateInvalidProductReturnsBadRequest() throws Exception {
         mockMvc.perform(put("/api/products/1")
+                        .with(admin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(INVALID_BODY))
                 .andExpect(status().isBadRequest())
@@ -244,17 +297,25 @@ class ProductControllerTest {
 
     @Test
     void deleteProductReturnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/products/1"))
+        mockMvc.perform(delete("/api/products/1").with(admin()))
                 .andExpect(status().isNoContent());
 
         verify(productService).deleteProduct(1L);
     }
 
     @Test
+    void deleteProductWithoutTokenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(delete("/api/products/1"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(productService);
+    }
+
+    @Test
     void deleteMissingProductReturnsNotFound() throws Exception {
         willThrow(new ProductNotFoundException(99L)).given(productService).deleteProduct(99L);
 
-        mockMvc.perform(delete("/api/products/99"))
+        mockMvc.perform(delete("/api/products/99").with(admin()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
@@ -263,10 +324,24 @@ class ProductControllerTest {
     void deleteProductInUseReturnsConflict() throws Exception {
         willThrow(new ProductInUseException(1L)).given(productService).deleteProduct(1L);
 
-        mockMvc.perform(delete("/api/products/1"))
+        mockMvc.perform(delete("/api/products/1").with(admin()))
                 .andExpect(status().isConflict())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.detail").value("Product with id 1 is in use"));
+    }
+
+    private static RequestPostProcessor admin() {
+        return withRealmRoles("admin");
+    }
+
+    private static RequestPostProcessor customer() {
+        return withRealmRoles("customer");
+    }
+
+    private static RequestPostProcessor withRealmRoles(String... roles) {
+        return jwt()
+                .jwt(token -> token.claim("realm_access", Map.of("roles", List.of(roles))))
+                .authorities(new KeycloakRealmRoleConverter());
     }
 
     private static String bodyWithImageUrl(String imageUrl) {

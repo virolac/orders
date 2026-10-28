@@ -1,0 +1,36 @@
+info:
+  name: Place Order Without Token
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/orders"
+  body:
+    type: json
+    data: |-
+      {
+        "items": [
+          {
+            "productId": 1,
+            "quantity": 2
+          },
+          {
+            "productId": 51,
+            "quantity": 1
+          }
+        ]
+      }
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "401"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
