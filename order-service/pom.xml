@@ -24,6 +24,9 @@
 		<tag/>
 		<url/>
 	</scm>
+	<properties>
+		<springdoc.version>3.2.0</springdoc.version>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -96,6 +99,11 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 	</dependencies>
 

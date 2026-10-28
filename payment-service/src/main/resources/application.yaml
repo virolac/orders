@@ -16,4 +16,3 @@ spring:
           multiplier: 2
           max-retries: 2
         default-requeue-rejected: false
-

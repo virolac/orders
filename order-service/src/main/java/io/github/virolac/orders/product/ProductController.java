@@ -1,5 +1,9 @@
 package io.github.virolac.orders.product;
 
+import io.github.virolac.orders.web.OpenApiConfig;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
+@Tag(name = "Products")
 public class ProductController {
     private final ProductService productService;
 
@@ -27,16 +32,20 @@ public class ProductController {
     }
 
     @GetMapping
+    @Operation(summary = "List all products")
     public List<ProductResponse> getProducts() {
         return productService.getAllProducts();
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a product")
     public ProductResponse getProduct(@PathVariable Long id) {
         return productService.getProductById(id);
     }
 
     @PostMapping
+    @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME)
+    @Operation(summary = "Create a product")
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest productRequest) {
         ProductResponse createdProduct = productService.createProduct(productRequest);
         URI productUri = ServletUriComponentsBuilder
@@ -49,12 +58,16 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
+    @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME)
+    @Operation(summary = "Update a product")
     public ProductResponse updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest productRequest) {
         return productService.updateProduct(id, productRequest);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME)
+    @Operation(summary = "Delete a product")
     public void deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
     }

@@ -1,6 +1,11 @@
 package io.github.virolac.orders.order;
 
+import io.github.virolac.orders.web.OpenApiConfig;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -17,6 +22,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
+@Tag(name = "Orders")
+@SecurityRequirement(name = OpenApiConfig.SECURITY_SCHEME)
 public class OrderController {
     private final OrderService orderService;
 
@@ -25,18 +32,24 @@ public class OrderController {
     }
 
     @GetMapping
-    public List<OrderResponse> getOrders(@AuthenticationPrincipal Jwt jwt) {
+    @Operation(summary = "List my orders")
+    public List<OrderResponse> getOrders(@AuthenticationPrincipal @NonNull Jwt jwt) {
         return orderService.getOrdersForCustomer(jwt.getSubject());
     }
 
     @GetMapping("/{id}")
-    public OrderResponse getOrder(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+    @Operation(summary = "Get one of my orders")
+    public OrderResponse getOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal @NonNull Jwt jwt
+    ) {
         return orderService.getOrderById(id, jwt.getSubject());
     }
 
     @PostMapping
+    @Operation(summary = "Place an order")
     public ResponseEntity<OrderResponse> placeOrder(
-            @AuthenticationPrincipal Jwt jwt,
+            @AuthenticationPrincipal @NonNull Jwt jwt,
             @Valid @RequestBody PlaceOrderRequest placeOrderRequest
     ) {
         OrderResponse placedOrder = orderService.placeOrder(jwt.getSubject(), placeOrderRequest);
