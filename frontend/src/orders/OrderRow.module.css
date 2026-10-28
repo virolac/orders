@@ -1,0 +1,62 @@
+.row {
+  display: grid;
+  grid-template-columns: 5rem 1fr 6rem 10rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+}
+
+.row[data-status="PAID"] {
+  border-left-color: #16a34a;
+}
+
+.row[data-status="FAILED"] {
+  border-left-color: #dc2626;
+}
+
+.id {
+  font-weight: 600;
+}
+
+.date {
+  color: #6b7280;
+}
+
+.total {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  text-align: right;
+  font-weight: 600;
+}
+
+.row[data-status="PENDING"] .status {
+  color: #b45309;
+}
+
+.row[data-status="PAID"] .status {
+  color: #16a34a;
+}
+
+.row[data-status="FAILED"] .status {
+  color: #dc2626;
+}
+
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .date {
+    text-align: right;
+  }
+
+  .total {
+    text-align: left;
+  }
+}

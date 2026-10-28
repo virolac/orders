@@ -8,6 +8,26 @@
   margin: 0 auto 1.5rem;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navButton {
+  background: transparent;
+  color: #374151;
+}
+
+.navButton:hover {
+  background: #e5e7eb;
+}
+
+.navButton[aria-current="page"] {
+  color: #2563eb;
+  font-weight: 600;
+}
+
 .title {
   margin: 0;
   font-size: 1.5rem;
@@ -17,6 +37,12 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.ordersPage {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
 .page {

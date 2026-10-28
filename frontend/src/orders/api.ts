@@ -44,6 +44,23 @@ export async function placeOrder(
   return await response.json();
 }
 
+export async function fetchOrders(
+  accessToken: string,
+  signal: AbortSignal,
+): Promise<OrderResponse[]> {
+  const response = await fetch("/api/orders", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch orders (status=${response.status})`);
+  }
+
+  return await response.json();
+}
+
 export async function fetchOrder(
   accessToken: string,
   id: number,
