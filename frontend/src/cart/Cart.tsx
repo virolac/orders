@@ -3,6 +3,7 @@ import { formatPrice } from "../format";
 import { placeOrder, type OrderResponse } from "../orders/api";
 import type { CartItem } from "./types";
 import { OrderConfirmation } from "../orders/OrderConfirmation";
+import styles from "./Cart.module.css";
 
 function calculateEstimatedTotal(items: CartItem[]): number {
   return items.reduce((sum, { product, quantity }) => {
@@ -61,17 +62,19 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
   let cartContents;
   if (items.length > 0) {
     cartContents = (
-      <>
-        <ul>
+      <div className={styles.panel}>
+        <ul className={styles.items}>
           {items.map(({ product, quantity }) => (
-            <li key={product.id}>
-              <span>{product.name}</span>
+            <li key={product.id} className={styles.item}>
+              <span className={styles.itemName}>{product.name}</span>
               <span>×{quantity}</span>
               <span>{formatPrice(product.price * quantity)}</span>
             </li>
           ))}
         </ul>
-        <p>Estimated total: {formatPrice(calculateEstimatedTotal(items))}</p>
+        <p className={styles.total}>
+          Estimated total: {formatPrice(calculateEstimatedTotal(items))}
+        </p>
         <button
           type="button"
           onClick={handlePlaceOrder}
@@ -81,10 +84,10 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
             ? "Placing order..."
             : "Place order"}
         </button>
-      </>
+      </div>
     );
   } else {
-    cartContents = <p>Your cart is empty</p>;
+    cartContents = <p className={styles.panel}>Your cart is empty.</p>;
   }
 
   return (
@@ -94,7 +97,9 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
       )}
       {cartContents}
       {orderState.status === "failed" && (
-        <p role="alert">Couldn't place your order. Please try again.</p>
+        <p role="alert" className={styles.error}>
+          Couldn't place your order. Please try again.
+        </p>
       )}
     </>
   );

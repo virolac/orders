@@ -1,0 +1,28 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.title {
+  grid-column: 1 / -1;
+}
+
+.cartColumn {
+  position: sticky;
+  top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .cartColumn {
+    position: static;
+  }
+}

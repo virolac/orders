@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchProducts, type Product } from "./api";
 import { ProductCard } from "./ProductCard";
+import styles from "./ProductList.module.css";
 
 type ProductListLoadingState = {
   status: "loading";
@@ -61,7 +62,7 @@ export function ProductList({ onAddToCart }: ProductListProps) {
   }
 
   return (
-    <ul>
+    <ul className={styles.grid}>
       {listState.products.map((product) => (
         <li key={product.id}>
           <ProductCard product={product} onAddToCart={onAddToCart} />

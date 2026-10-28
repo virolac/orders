@@ -1,0 +1,22 @@
+.confirmation {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #f59e0b;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.confirmation[data-status="PAID"] {
+  border-left-color: #16a34a;
+}
+
+.confirmation[data-status="FAILED"] {
+  border-left-color: #dc2626;
+}
+
+.confirmation p {
+  margin: 0;
+}

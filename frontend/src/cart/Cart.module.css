@@ -1,0 +1,31 @@
+.panel {
+  background: white;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.itemName {
+  flex: 1;
+}
+
+.total {
+  font-weight: 600;
+}
+
+.error {
+  color: #dc2626;
+}

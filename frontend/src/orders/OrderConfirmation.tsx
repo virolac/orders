@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchOrder, type OrderResponse, type OrderStatus } from "./api";
 import { formatPrice } from "../format";
+import styles from "./OrderConfirmation.module.css";
 
 const textForStatus: Record<OrderStatus, string> = {
   PENDING: "Processing payment...",
@@ -60,7 +61,11 @@ export function OrderConfirmation({ order }: OrderConfirmationProps) {
   }, [currentOrder.id, currentOrder.status]);
 
   return (
-    <div role="status">
+    <div
+      role="status"
+      className={styles.confirmation}
+      data-status={currentOrder.status}
+    >
       <p>Order #{currentOrder.id} placed.</p>
       <p>Status: {textForStatus[currentOrder.status]}</p>
       <p>Total: {formatPrice(currentOrder.total)}</p>
