@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchOrder, type OrderResponse, type OrderStatus } from "./api";
 import { formatPrice } from "../format";
 import styles from "./OrderConfirmation.module.css";
+import { useAuth } from "react-oidc-context";
 
 const textForStatus: Record<OrderStatus, string> = {
   PENDING: "Processing payment...",
@@ -15,6 +16,7 @@ export type OrderConfirmationProps = {
 
 export function OrderConfirmation({ order }: OrderConfirmationProps) {
   const [currentOrder, setCurrentOrder] = useState<OrderResponse>(order);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (currentOrder.status !== "PENDING") {
@@ -26,7 +28,13 @@ export function OrderConfirmation({ order }: OrderConfirmationProps) {
 
     const poll = async () => {
       try {
+        const accessToken = user?.access_token;
+        if (!accessToken) {
+          return;
+        }
+
         const refreshedOrder = await fetchOrder(
+          accessToken,
           currentOrder.id,
           controller.signal,
         );
@@ -58,7 +66,7 @@ export function OrderConfirmation({ order }: OrderConfirmationProps) {
       clearTimeout(pollTimeoutId);
       controller.abort();
     };
-  }, [currentOrder.id, currentOrder.status]);
+  }, [currentOrder.id, currentOrder.status, user]);
 
   return (
     <div

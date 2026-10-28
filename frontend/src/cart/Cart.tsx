@@ -3,6 +3,7 @@ import { formatPrice } from "../format";
 import { placeOrder, type OrderResponse } from "../orders/api";
 import type { CartItem } from "./types";
 import { OrderConfirmation } from "../orders/OrderConfirmation";
+import { useAuth } from "react-oidc-context";
 import styles from "./Cart.module.css";
 
 function calculateEstimatedTotal(items: CartItem[]): number {
@@ -39,8 +40,15 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
   const [orderState, setOrderState] = useState<OrderSubmitState>({
     status: "idle",
   });
+  const { isLoading, isAuthenticated, signinRedirect, user } = useAuth();
 
   const handlePlaceOrder = async () => {
+    const accessToken = user?.access_token;
+    if (!accessToken) {
+      signinRedirect();
+      return;
+    }
+
     setOrderState({ status: "submitting" });
 
     const orderItems = items.map(({ product, quantity }) => ({
@@ -49,7 +57,9 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
     }));
 
     try {
-      const placedOrder = await placeOrder({ items: orderItems });
+      const placedOrder = await placeOrder(accessToken, {
+        items: orderItems,
+      });
 
       setOrderState({ status: "placed", order: placedOrder });
       onOrderPlaced();
@@ -58,6 +68,33 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
       setOrderState({ status: "failed" });
     }
   };
+
+  let placeOrderBtn;
+  if (isLoading) {
+    placeOrderBtn = (
+      <button type="button" disabled>
+        Place order
+      </button>
+    );
+  } else if (isAuthenticated) {
+    placeOrderBtn = (
+      <button
+        type="button"
+        onClick={handlePlaceOrder}
+        disabled={orderState.status === "submitting"}
+      >
+        {orderState.status === "submitting"
+          ? "Placing order..."
+          : "Place order"}
+      </button>
+    );
+  } else {
+    placeOrderBtn = (
+      <button type="button" onClick={() => signinRedirect()}>
+        Log in to place an order
+      </button>
+    );
+  }
 
   let cartContents;
   if (items.length > 0) {
@@ -75,15 +112,7 @@ export function Cart({ items, onOrderPlaced }: CartProps) {
         <p className={styles.total}>
           Estimated total: {formatPrice(calculateEstimatedTotal(items))}
         </p>
-        <button
-          type="button"
-          onClick={handlePlaceOrder}
-          disabled={orderState.status === "submitting"}
-        >
-          {orderState.status === "submitting"
-            ? "Placing order..."
-            : "Place order"}
-        </button>
+        {placeOrderBtn}
       </div>
     );
   } else {

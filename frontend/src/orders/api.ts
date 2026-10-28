@@ -26,12 +26,14 @@ export type OrderResponse = {
 };
 
 export async function placeOrder(
+  accessToken: string,
   request: PlaceOrderRequest,
 ): Promise<OrderResponse> {
   const response = await fetch("/api/orders", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(request),
   });
@@ -43,10 +45,16 @@ export async function placeOrder(
 }
 
 export async function fetchOrder(
+  accessToken: string,
   id: number,
   signal: AbortSignal,
 ): Promise<OrderResponse> {
-  const response = await fetch(`/api/orders/${id}`, { signal });
+  const response = await fetch(`/api/orders/${id}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    signal,
+  });
   if (!response.ok) {
     throw new Error(
       `Failed to fetch order with id ${id} (status=${response.status})`,
