@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PaymentResultIntegrationTest {
     private static final long TIMEOUT_MILLIS = 10_000;
     private static final long POLL_INTERVAL_MILLIS = 100;
+    private static final String CUSTOMER_ID = "11111111-1111-1111-1111-111111111111";
 
     @Autowired
     private OrderService orderService;
@@ -76,7 +77,7 @@ class PaymentResultIntegrationTest {
     private OrderResponse placeOrderForRedLipstick() {
         Long lipstickId = productRepository.findByName("Red Lipstick").getFirst().getId();
 
-        return orderService.placeOrder(new PlaceOrderRequest(List.of(
+        return orderService.placeOrder(CUSTOMER_ID, new PlaceOrderRequest(List.of(
                 new OrderItemRequest(lipstickId, 1)
         )));
     }
@@ -85,7 +86,7 @@ class PaymentResultIntegrationTest {
         long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
 
         while (System.currentTimeMillis() < deadline) {
-            OrderStatus status = orderService.getOrderById(orderId).status();
+            OrderStatus status = orderService.getOrderById(orderId, CUSTOMER_ID).status();
             if (status != OrderStatus.PENDING) {
                 return status;
             }

@@ -2,6 +2,8 @@ package io.github.virolac.orders.order;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,18 +25,21 @@ public class OrderController {
     }
 
     @GetMapping
-    public List<OrderResponse> getOrders() {
-        return orderService.getAllOrders();
+    public List<OrderResponse> getOrders(@AuthenticationPrincipal Jwt jwt) {
+        return orderService.getOrdersForCustomer(jwt.getSubject());
     }
 
     @GetMapping("/{id}")
-    public OrderResponse getOrder(@PathVariable Long id) {
-        return orderService.getOrderById(id);
+    public OrderResponse getOrder(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return orderService.getOrderById(id, jwt.getSubject());
     }
 
     @PostMapping
-    public ResponseEntity<OrderResponse> placeOrder(@Valid @RequestBody PlaceOrderRequest placeOrderRequest) {
-        OrderResponse placedOrder = orderService.placeOrder(placeOrderRequest);
+    public ResponseEntity<OrderResponse> placeOrder(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody PlaceOrderRequest placeOrderRequest
+    ) {
+        OrderResponse placedOrder = orderService.placeOrder(jwt.getSubject(), placeOrderRequest);
         URI orderUri = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/{id}")

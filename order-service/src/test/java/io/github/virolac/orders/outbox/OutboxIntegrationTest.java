@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OutboxIntegrationTest {
     private static final long TIMEOUT_MILLIS = 10_000;
     private static final long POLL_INTERVAL_MILLIS = 100;
+    private static final String CUSTOMER_ID = "11111111-1111-1111-1111-111111111111";
 
     @Autowired
     private OrderService orderService;
@@ -62,7 +63,7 @@ class OutboxIntegrationTest {
         long eventsBefore = outboxEventRepository.count();
         Long lipstickId = productRepository.findByName("Red Lipstick").getFirst().getId();
 
-        assertThatThrownBy(() -> orderService.placeOrder(new PlaceOrderRequest(List.of(
+        assertThatThrownBy(() -> orderService.placeOrder(CUSTOMER_ID, new PlaceOrderRequest(List.of(
                 new OrderItemRequest(lipstickId, 1),
                 new OrderItemRequest(999_999L, 1)
         )))).isInstanceOf(ProductNotFoundException.class);
@@ -73,7 +74,7 @@ class OutboxIntegrationTest {
     private OrderResponse placeOrderForRedLipstick() {
         Long lipstickId = productRepository.findByName("Red Lipstick").getFirst().getId();
 
-        return orderService.placeOrder(new PlaceOrderRequest(List.of(
+        return orderService.placeOrder(CUSTOMER_ID, new PlaceOrderRequest(List.of(
                 new OrderItemRequest(lipstickId, 1)
         )));
     }

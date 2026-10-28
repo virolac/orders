@@ -34,24 +34,28 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream().map(OrderResponse::from).toList();
+    public List<OrderResponse> getOrdersForCustomer(String customerId) {
+        return orderRepository
+                .findByCustomerIdOrderByCreatedAtDesc(customerId)
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public OrderResponse getOrderById(Long id) {
+    public OrderResponse getOrderById(Long id, String customerId) {
         return orderRepository
-                .findWithItemsById(id)
+                .findByIdAndCustomerId(id, customerId)
                 .map(OrderResponse::from)
                 .orElseThrow(() -> new OrderNotFoundException(id));
     }
 
     @Transactional
-    public OrderResponse placeOrder(PlaceOrderRequest placeOrderRequest) {
+    public OrderResponse placeOrder(String customerId, PlaceOrderRequest placeOrderRequest) {
         Map<Long, Integer> quantitiesByProductId = mergeQuantities(placeOrderRequest);
         Map<Long, Product> productsById = loadProducts(quantitiesByProductId);
 
-        Order order = new Order();
+        Order order = new Order(customerId);
         quantitiesByProductId.forEach((productId, quantity) -> {
             order.addItem(new OrderItem(productsById.get(productId), quantity));
         });

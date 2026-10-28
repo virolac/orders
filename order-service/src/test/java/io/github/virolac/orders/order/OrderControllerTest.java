@@ -33,6 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(OrderController.class)
 @Import(SecurityConfig.class)
 class OrderControllerTest {
+    private static final String CUSTOMER_ID = "11111111-1111-1111-1111-111111111111";
+    private static final String OTHER_CUSTOMER_ID = "22222222-2222-2222-2222-222222222222";
+
     private static final String VALID_BODY = """
             {
               "items": [
@@ -71,7 +74,7 @@ class OrderControllerTest {
 
     @Test
     void placeOrderReturnsCreatedWithLocationAndOrder() throws Exception {
-        given(orderService.placeOrder(VALID_REQUEST)).willReturn(PLACED_ORDER);
+        given(orderService.placeOrder(CUSTOMER_ID, VALID_REQUEST)).willReturn(PLACED_ORDER);
 
         mockMvc.perform(post("/api/orders")
                         .with(customer())
@@ -104,7 +107,7 @@ class OrderControllerTest {
     @Test
     void placeOrderWithoutCustomerRoleReturnsForbidden() throws Exception {
         mockMvc.perform(post("/api/orders")
-                        .with(withRealmRoles("admin"))
+                        .with(withToken(CUSTOMER_ID, "admin"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(VALID_BODY))
                 .andExpect(status().isForbidden());
@@ -166,7 +169,7 @@ class OrderControllerTest {
 
     @Test
     void placeOrderWithMissingProductReturnsNotFound() throws Exception {
-        given(orderService.placeOrder(VALID_REQUEST)).willThrow(new ProductNotFoundException(51L));
+        given(orderService.placeOrder(CUSTOMER_ID, VALID_REQUEST)).willThrow(new ProductNotFoundException(51L));
 
         mockMvc.perform(post("/api/orders")
                         .with(customer())
@@ -179,7 +182,7 @@ class OrderControllerTest {
 
     @Test
     void getOrderReturnsOrder() throws Exception {
-        given(orderService.getOrderById(7L)).willReturn(PLACED_ORDER);
+        given(orderService.getOrderById(7L, CUSTOMER_ID)).willReturn(PLACED_ORDER);
 
         mockMvc.perform(get("/api/orders/7").with(customer()))
                 .andExpect(status().isOk())
@@ -189,8 +192,18 @@ class OrderControllerTest {
     }
 
     @Test
+    void getAnotherCustomersOrderReturnsNotFound() throws Exception {
+        given(orderService.getOrderById(7L, OTHER_CUSTOMER_ID)).willThrow(new OrderNotFoundException(7L));
+
+        mockMvc.perform(get("/api/orders/7").with(withToken(OTHER_CUSTOMER_ID, "customer")))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Order with id 7 not found"));
+    }
+
+    @Test
     void getMissingOrderReturnsNotFound() throws Exception {
-        given(orderService.getOrderById(99L)).willThrow(new OrderNotFoundException(99L));
+        given(orderService.getOrderById(99L, CUSTOMER_ID)).willThrow(new OrderNotFoundException(99L));
 
         mockMvc.perform(get("/api/orders/99").with(customer()))
                 .andExpect(status().isNotFound())
@@ -199,8 +212,8 @@ class OrderControllerTest {
     }
 
     @Test
-    void getOrdersReturnsAllOrders() throws Exception {
-        given(orderService.getAllOrders()).willReturn(List.of(PLACED_ORDER));
+    void getOrdersReturnsCustomersOrders() throws Exception {
+        given(orderService.getOrdersForCustomer(CUSTOMER_ID)).willReturn(List.of(PLACED_ORDER));
 
         mockMvc.perform(get("/api/orders").with(customer()))
                 .andExpect(status().isOk())
@@ -217,12 +230,14 @@ class OrderControllerTest {
     }
 
     private static RequestPostProcessor customer() {
-        return withRealmRoles("customer");
+        return withToken(CUSTOMER_ID, "customer");
     }
 
-    private static RequestPostProcessor withRealmRoles(String... roles) {
+    private static RequestPostProcessor withToken(String subject, String... roles) {
         return jwt()
-                .jwt(token -> token.claim("realm_access", Map.of("roles", List.of(roles))))
+                .jwt(token -> token
+                        .subject(subject)
+                        .claim("realm_access", Map.of("roles", List.of(roles))))
                 .authorities(new KeycloakRealmRoleConverter());
     }
 }

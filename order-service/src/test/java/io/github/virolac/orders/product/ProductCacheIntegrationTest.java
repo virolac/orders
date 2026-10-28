@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ProductCacheIntegrationTest {
     private static final String DESCRIPTION = "A soft blush.";
     private static final String IMAGE_URL = "https://cdn.example.com/blush.webp";
+    private static final String CUSTOMER_ID = "11111111-1111-1111-1111-111111111111";
 
     @Autowired
     private ProductService productService;
@@ -56,7 +57,9 @@ class ProductCacheIntegrationTest {
     @BeforeEach
     void clearCache() {
         productsCache = cacheManager.getCache(ProductCacheConfig.PRODUCTS_CACHE);
-        productsCache.clear();
+        if (productsCache != null) {
+            productsCache.clear();
+        }
     }
 
     @Test
@@ -123,7 +126,7 @@ class ProductCacheIntegrationTest {
     @Test
     void failedDeleteKeepsCachedValue() {
         Long id = createProduct("Ordered Blush", "5.00");
-        orderService.placeOrder(new PlaceOrderRequest(List.of(new OrderItemRequest(id, 1))));
+        orderService.placeOrder(CUSTOMER_ID, new PlaceOrderRequest(List.of(new OrderItemRequest(id, 1))));
         productService.getProductById(id);
 
         assertThatThrownBy(() -> productService.deleteProduct(id))

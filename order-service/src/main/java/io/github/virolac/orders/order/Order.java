@@ -26,6 +26,9 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
+    @Column(nullable = false, updatable = false, length = 36)
+    private String customerId;
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
@@ -38,12 +41,20 @@ public class Order {
     @CreationTimestamp
     private Instant createdAt;
 
-    public Order() {
+    protected Order() {
+    }
+
+    public Order(String customerId) {
+        this.customerId = customerId;
         this.status = OrderStatus.PENDING;
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getCustomerId() {
+        return customerId;
     }
 
     public OrderStatus getStatus() {
