@@ -82,6 +82,14 @@ services:
     depends_on:
       rabbitmq:
         condition: service_started
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      order-service:
+        condition: service_started
 
 volumes:
   postgres_data:
