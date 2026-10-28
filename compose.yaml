@@ -28,6 +28,17 @@ services:
     container_name: redis-dev
     ports:
       - "6379:6379"
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: "start-dev --import-realm"
+    container_name: keycloak-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
 
 volumes:
   postgres_data:
